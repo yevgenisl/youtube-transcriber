@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Word List with ag-Grid</title>
+
+  <!-- AG Grid styles -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/ag-grid-community@29.3.3/styles/ag-grid.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/ag-grid-community@29.3.3/styles/ag-theme-alpine.css"
+  />
+
+  <!-- AG Grid JS -->
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@29.3.3/dist/ag-grid-community.min.js"></script>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .ag-theme-alpine {
+      height: 100vh;
+      width: 600px;
+      margin: auto;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="myGrid" class="ag-theme-alpine"></div>
+  <button id="submitBtn" style="display:block; margin: 10px auto;">Submit Checked</button>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Custom Checkbox Renderer
+      function checkboxCellRenderer(params) {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!params.value;
+  
+        checkbox.addEventListener('change', function () {
+          params.node.setDataValue(params.colDef.field, checkbox.checked);
+        });
+  
+        return checkbox;
+      }
+  
+      const columnDefs = [
+        { headerName: "Word", field: "word" },
+        {
+          headerName: "Learn it!",
+          field: "learn",
+          editable: true,
+          cellRenderer: checkboxCellRenderer
+        }
+      ];
+  
+      const gridOptions = {
+        columnDefs: columnDefs,
+        defaultColDef: {
+          flex: 1,
+          minWidth: 100,
+          resizable: true,
+        },
+        rowData: null
+      };
+  
+      const gridDiv = document.getElementById('myGrid');
+      new agGrid.Grid(gridDiv, gridOptions);
+  
+      fetch('/api/words')
+        .then(response => response.json())
+        .then(data => {
+          gridOptions.api.setRowData(data);
+        });
+  
+      // 🔁 Submit logic shared by button and Enter key
+      function submitCheckedWords() {
+        const checkedWords = [];
+        gridOptions.api.forEachNode(node => {
+          if (node.data.learn === true) {
+            checkedWords.push(node.data.word);
+          }
+        });
+  
+        fetch('/api/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ words: checkedWords })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status !== 'success') {
+             alert('Error saving: ' + res.message);
+            }
+        });
+      }
+  
+      // 🔘 Submit on button click
+      document.getElementById('submitBtn').addEventListener('click', submitCheckedWords);
+  
+      // ⌨️ Submit on Enter key
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault(); // Prevent default behavior like form submit
+          submitCheckedWords();
+        }
+      });
+    });
+  </script>
+  
+  
+
+</body>
+</html>
