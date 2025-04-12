@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 import sqlite3
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 DB_FILE = 'words.db'
@@ -8,6 +9,8 @@ DB_FILE = 'words.db'
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
+        
+        # Create the 'words' table if it doesn't exist
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS words (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +19,16 @@ def init_db():
             )
         ''')
 
-        # Only populate if empty
+        # Create the 'chosen_words' table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chosen_words (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                word TEXT NOT NULL,
+                chosen_at TIMESTAMP NOT NULL
+            )
+        ''')
+
+        # Populate the words table with 200 sample words if it's empty
         cursor.execute('SELECT COUNT(*) FROM words')
         if cursor.fetchone()[0] == 0:
             sample_words = [f"Word_{i}" for i in range(1, 201)]
@@ -46,15 +58,28 @@ def save_words():
 
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE words SET learn = 0")  # Reset all
+        
+        # Clear previous entries in the 'chosen_words' table
+        cursor.execute("DELETE FROM chosen_words")
+        
+        # Insert the new checked words into the 'chosen_words' table
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.executemany(
-            "UPDATE words SET learn = 1 WHERE word = ?",
-            [(word,) for word in checked_words]
+            "INSERT INTO chosen_words (word, chosen_at) VALUES (?, ?)",
+            [(word, current_time) for word in checked_words]
         )
         conn.commit()
 
     return jsonify({"status": "success"})
 
+@app.route("/api/chosen_words")
+def get_chosen_words():
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT word, chosen_at FROM chosen_words')
+        rows = cursor.fetchall()
+        return jsonify([{"word": row[0], "chosen_at": row[1]} for row in rows])
+    
 if __name__ == "__main__":
     init_db()
     app.run(debug=True)
