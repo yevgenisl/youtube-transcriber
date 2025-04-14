@@ -1,4 +1,8 @@
 {
   "python.pythonPath": "venv/bin/python", 
-  "python.terminal.activateEnvironment": true
+  "python.terminal.activateEnvironment": true,
+  "python.autoComplete.extraPaths": [
+    "./libs"  // Adjust the path if needed, depending on your project structure
+]
+
 }

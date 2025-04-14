@@ -97,6 +97,13 @@ def find_most_frequent_words(text, top_x,output_file):
             f.write(f"{word}\n")
 
 
+    # save the new words only
+    with open('new_words.txt', 'w') as f:  # Open in append mode to avoid overwriting
+        for word, count in top_new_words:
+            f.write(f"{word}\n")
+
+
+
     # Print the most common words
     print(f"Most frequent words saved to {output_file}")
     for i, (word, count) in enumerate(top_new_words, 1):

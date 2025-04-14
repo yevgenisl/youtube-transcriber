@@ -1,4 +1,6 @@
 most_frequent_words.txt
 tube-summary/*
 TODO
+*/__pycache__/*
 */*.db
+new_words.txt

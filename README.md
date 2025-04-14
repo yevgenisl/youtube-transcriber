@@ -65,27 +65,16 @@ Most frequent words saved to top_words.txt
 5. in: 18 times
 ...
 ```
+## Front end
 
-**Output File (`top_words.txt`)**:
+The `front-end` directory contains the user interface portion of the project. It is designed to provide a workflow for displaying the most frequently used words found in YouTube video transcripts.
 
-```
-the
-and
-to
-of
-in
-...
-```
+Key features include:
 
-If a word already exists in the file, it will not be added again.
+- 📊 **AG Grid Integration**: Displays extracted words in an interactive, sortable, and filterable table.
+- 🧠 **Language Learning Focus**: Helps users identify and explore commonly spoken words from video content for educational purposes.
+- 🔄 **Workflow Support**: Structured to enable seamless interaction between data extracted by the backend and its visualization.
 
-## File Structure
-- `youtube_transcript_summarizer.py`: The Python script.
-- `most_frequent_words.txt`: (Optional) The output file containing the most frequent words.
-
-## Error Handling
-- If the YouTube video is not available or if there are issues with the API, the script will print an error message to the console.
-- If the output file cannot be written, an error message will be displayed.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
