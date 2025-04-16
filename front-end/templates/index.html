@@ -28,6 +28,10 @@
 
   <!-- Words Tab Content -->
   <div id="wordsContainer">
+    <div style="margin-bottom: 10px;">
+      <label for="videoId">YouTube Video ID:</label>
+      <input type="text" id="videoId" placeholder="Enter video ID" style="margin-left: 10px; padding: 5px;">
+    </div>
     <div id="myGrid" class="ag-theme-alpine"></div>
     <div id="buttonsContainer">
         <button id="submitBtn">Submit Checked</button>
@@ -168,10 +172,20 @@
 
       // Load Next Set of Words
       function loadNextSetOfWords() {
-        fetch('/api/next_set_of_words')  // Make sure this endpoint exists on the server side
+        const videoId = document.getElementById('videoId').value;
+        if (!videoId) {
+          alert('Please enter a video ID');
+          return;
+        }
+
+        fetch(`/api/next_set_of_words?video_id=${videoId}`)
           .then(response => response.json())
           .then(data => {
-            gridOptions.api.setRowData(data); // Update grid with new data
+            gridOptions.api.setRowData(data);
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading words. Please check the video ID and try again.');
           });
       }
 

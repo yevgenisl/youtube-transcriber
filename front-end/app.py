@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from lib.utils import get_parent_path
 from lib.youtube import get_next_batch
+from lib.translation import translator
 
 app = Flask(__name__)
 DB_FILE = 'words.db'
@@ -97,13 +98,29 @@ def get_chosen_words():
 # Route to get the next set of words
 @app.route('/api/next_set_of_words', methods=['GET'])
 def next_set_of_words():
-    batch_size = 20  # Set batch size (you can adjust this)
+    video_id = request.args.get('video_id')
+    if not video_id:
+        return jsonify({"error": "Video ID is required"}), 400
 
-    #get_video_transcript()
-    words = get_next_batch("RkETqdBxY3c",10)
+    batch_size = 20  # Set batch size (you can adjust this)
+    words = get_next_batch(video_id, batch_size)
     word_list = [{'word': word[0]} for word in words]  # Extracting the word part from the tuple
     return jsonify(word_list)
 
+@app.route("/api/translate", methods=["POST"])
+def translate_word():
+    data = request.get_json()
+    if not data or "word" not in data:
+        return jsonify({"error": "Word is required"}), 400
+    
+    word = data["word"]
+    translation = translator.translate(word)
+    
+    if translation is None:
+        return jsonify({"error": "Translation failed"}), 500
+    
+    return jsonify({"translation": translation})
+
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, port=5002)

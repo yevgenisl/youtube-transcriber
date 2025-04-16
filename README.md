@@ -1,4 +1,3 @@
-
 # YouTube Transcript Summarizer and Word Frequency Analyzer
 
 This Python script retrieves a transcript from a YouTube video, summarizes the content using OpenAI's GPT model, and analyzes the most frequent words in the transcript. The script also ensures that only new words are added to an output file, skipping words that already exist in the file.
@@ -65,15 +64,73 @@ Most frequent words saved to top_words.txt
 5. in: 18 times
 ...
 ```
-## Front end
 
-The `front-end` directory contains the user interface portion of the project. It is designed to provide a workflow for displaying the most frequently used words found in YouTube video transcripts.
 
-Key features include:
+# YouTube Transcriber Front-end
 
-- 📊 **AG Grid Integration**: Displays extracted words in an interactive, sortable, and filterable table.
-- 🧠 **Language Learning Focus**: Helps users identify and explore commonly spoken words from video content for educational purposes.
-- 🔄 **Workflow Support**: Structured to enable seamless interaction between data extracted by the backend and its visualization.
+This is the front-end component of the YouTube Transcriber application, built using Flask. It provides a web interface for managing and learning words from YouTube video transcripts.
+
+## Features
+
+- Word management system
+- YouTube video transcript integration
+- Word selection and tracking
+- Learning progress monitoring
+
+## Database Structure
+
+The application uses SQLite with two main tables:
+
+### Words Table
+- Stores all available words
+- Tracks learning status for each word
+- Fields:
+  - `id`: Primary key
+  - `word`: The word text
+  - `learn`: Boolean flag indicating if the word should be learned
+
+### Chosen Words Table
+- Tracks selected words and when they were chosen
+- Fields:
+  - `id`: Primary key
+  - `word`: The selected word
+  - `chosen_at`: Timestamp of when the word was selected
+
+## API Endpoints
+
+### Main Page
+- `GET /`: Serves the main index page
+
+### Word Management
+- `GET /api/words`: Retrieves all words and their learning status
+- `POST /api/save`: Saves selected words to the chosen_words table
+- `GET /api/chosen_words`: Retrieves previously chosen words and their selection timestamps
+- `GET /api/next_set_of_words`: Gets a new batch of words from YouTube video transcripts
+
+## Setup and Initialization
+
+1. The application initializes the database on startup
+2. Words are loaded from `new_words.txt` into the database
+3. Database tables are created if they don't exist
+
+## YouTube Integration
+
+- Fetches words from YouTube video transcripts
+- Supports batch processing (20 words at a time)
+
+## Technical Details
+
+- Built with Flask web framework
+- Uses SQLite for data persistence
+- Integrates with a backend library for YouTube transcript processing
+
+## Running the Application
+
+```bash
+python front-end/app.py
+```
+
+The application will start in debug mode and be accessible at `http://localhost:5000`.
 
 
 ## License

@@ -3,6 +3,9 @@
   "python.terminal.activateEnvironment": true,
   "python.autoComplete.extraPaths": [
     "./libs"  // Adjust the path if needed, depending on your project structure
+],
+"python.analysis.extraPaths": [
+  "./libs"
 ]
 
 }
