@@ -1,5 +1,4 @@
 from flask import Flask, render_template, jsonify, request
-import sqlite3
 import os,sys
 from datetime import datetime
 
@@ -9,47 +8,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.utils import get_parent_path
 from lib.youtube import get_next_batch
 from lib.translation import translator
+from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words
 
 app = Flask(__name__)
-DB_FILE = 'words.db'
-
-def init_db():
-    # Connect to SQLite database
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-
-    # Create words table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS words (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            word TEXT NOT NULL,
-            learn BOOLEAN DEFAULT FALSE
-        )
-    ''')
-
-    # Create chosen_words table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS chosen_words (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            word TEXT NOT NULL,
-            chosen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-
-    file_path = get_parent_path('new_words.txt')
-    # Load words from the text file and insert them into the database
-    with open(file_path, 'r') as file:
-        words = file.readlines()
-
-    for word in words:
-        word = word.strip()  # Remove leading/trailing spaces or newlines
-        if word:  # Ensure the line is not empty
-            c.execute('INSERT INTO words (word) VALUES (?)', (word,))
-
-    # Commit changes and close the connection
-    conn.commit()
-    conn.close()
 
 @app.route("/")
 def index():
@@ -57,11 +18,7 @@ def index():
 
 @app.route("/api/words")
 def get_words():
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT word, learn FROM words')
-        rows = cursor.fetchall()
-        return jsonify([{"word": row[0], "learn": bool(row[1])} for row in rows])
+    return jsonify(get_all_words())
 
 @app.route("/api/save", methods=["POST"])
 def save_words():
@@ -70,30 +27,12 @@ def save_words():
         return jsonify({"status": "error", "message": "Invalid data"}), 400
 
     checked_words = data["words"]
-
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        
-        # Clear previous entries in the 'chosen_words' table
-        #cursor.execute("DELETE FROM chosen_words")
-        
-        # Insert the new checked words into the 'chosen_words' table
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.executemany(
-            "INSERT INTO chosen_words (word, chosen_at) VALUES (?, ?)",
-            [(word, current_time) for word in checked_words]
-        )
-        conn.commit()
-
+    save_chosen_words(checked_words, translator)
     return jsonify({"status": "success"})
 
 @app.route("/api/chosen_words")
-def get_chosen_words():
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute('SELECT word, chosen_at FROM chosen_words')
-        rows = cursor.fetchall()
-        return jsonify([{"word": row[0], "chosen_at": row[1]} for row in rows])
+def get_chosen_words_route():
+    return jsonify(get_chosen_words())
 
 # Route to get the next set of words
 @app.route('/api/next_set_of_words', methods=['GET'])

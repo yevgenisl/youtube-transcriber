@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Initialize Database",
+            "type": "shell",
+            "command": "cd ${workspaceFolder}/lib && ${workspaceFolder}/vent/bin/python init_db.py",
+            "problemMatcher": []
+        }
+    ]
+} 

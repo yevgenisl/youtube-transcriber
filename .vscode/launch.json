@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+     {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "cwd": "${workspaceFolder}/front-end",
+            "env": {
+                "FLASK_APP": "front-end/app.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload",
+                "--port",
+                "5002"
+            ],
+            "jinja": true,
+            "justMyCode": true,
+            "python": "${workspaceFolder}/vent/bin/python",
+            "preLaunchTask": "Initialize Database"
+        },
+        {
+            "name": "Launch Browser",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5002",
+            "webRoot": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Flask + Browser",
+            "configurations": ["Python: Flask", "Launch Browser"]
+        }
+    ]
+} 

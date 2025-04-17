@@ -12,12 +12,37 @@ This Python script retrieves a transcript from a YouTube video, summarizes the c
 - Python 3.6+
 - `openai` library for interacting with OpenAI API
 - `youtube-transcript-api` for retrieving YouTube video transcripts
+- Docker or Podman (for running LibreTranslate locally)
 
 You can install the required libraries using pip:
 
 ```bash
 pip install openai youtube-transcript-api
 ```
+
+## Translation Service Setup
+
+To run your own translation service locally using LibreTranslate:
+
+1. Clone the LibreTranslate repository:
+```bash
+git clone https://github.com/LibreTranslate/LibreTranslate.git
+cd LibreTranslate
+```
+
+2. Run the service using Docker or Podman:
+```bash
+./run.sh
+```
+
+This will start the LibreTranslate service on `http://localhost:5000`. The service provides a free, self-hosted alternative to paid hosted LibreTranslate APIs.
+
+Alternatively, you can run it using Podman:
+```bash
+podman run -it --rm -p 5000:5000 libretranslate/libretranslate
+```
+
+The translation service will be available at `http://localhost:5000` and can be used to translate text between various languages without requiring an API key.
 
 ## Usage
 
