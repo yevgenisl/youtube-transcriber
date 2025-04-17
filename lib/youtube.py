@@ -58,6 +58,33 @@ def find_most_frequent_words(text, top_x,output_file):
     for i, (word, count) in enumerate(top_new_words, 1):
         print(f"{i}. {word}: {count} times")
 
+def find_sentences_with_word(text, target_word):
+    """
+    Find all sentences containing a specific word in the transcript.
+    
+    Args:
+        text (str): The transcript text
+        target_word (str): The word to search for
+        
+    Returns:
+        list: List of sentences containing the target word
+    """
+    # Convert both text and target word to lowercase for case-insensitive search
+    text = text.lower()
+    target_word = target_word.lower()
+    
+    # Split text into sentences (using common sentence delimiters)
+    sentences = re.split(r'[.!?]+', text)
+    
+    # Find sentences containing the target word
+    matching_sentences = []
+    for sentence in sentences:
+        if target_word in sentence.lower():
+            # Clean up the sentence (remove extra whitespace)
+            cleaned_sentence = ' '.join(sentence.split())
+            matching_sentences.append(cleaned_sentence)
+    
+    return matching_sentences
 
 # Main entry point
 def get_next_batch(video_id,batch_size):

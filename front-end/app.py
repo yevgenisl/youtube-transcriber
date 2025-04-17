@@ -6,7 +6,7 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from lib.utils import get_parent_path
-from lib.youtube import get_next_batch
+from lib.youtube import get_next_batch, find_sentences_with_word,get_video_transcript
 from lib.translation import translator
 from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words
 
@@ -59,6 +59,26 @@ def translate_word():
         return jsonify({"error": "Translation failed"}), 500
     
     return jsonify({"translation": translation})
+
+@app.route("/api/search_sentences", methods=["GET"])
+def search_sentences():
+    word = request.args.get('word')
+    video_id = request.args.get('video_id')
+    
+    if not word or not video_id:
+        return jsonify({"error": "Word and video_id are required"}), 400
+    
+    try:
+        # Get the transcript for the video
+        transcript = get_video_transcript(video_id)
+        if not transcript:
+            return jsonify({"error": "Could not fetch transcript"}), 404
+            
+        # Find sentences containing the word
+        sentences = find_sentences_with_word(transcript, word)
+        return jsonify({"sentences": sentences})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     init_db()
