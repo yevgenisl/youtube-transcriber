@@ -70,6 +70,21 @@
       padding: 10px;
       border-bottom: 1px solid #eee;
     }
+    .timestamp {
+      color: #666;
+      font-size: 0.9em;
+      margin-right: 10px;
+      background-color: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .timestamp:hover {
+      background-color: #e0e0e0;
+    }
+    .sentence-content {
+      display: inline;
+    }
     .modal-buttons {
       display: flex;
       justify-content: flex-end;
@@ -173,14 +188,34 @@
       function displaySentences(word, sentences) {
         const modalTitle = document.getElementById('modalTitle');
         const sentencesContainer = document.getElementById('sentencesContainer');
+        const videoId = document.getElementById('videoId').value;
         
         modalTitle.textContent = `Sentences containing "${word}"`;
         sentencesContainer.innerHTML = '';
         
-        sentences.forEach(sentence => {
+        sentences.forEach(sentenceData => {
           const sentenceDiv = document.createElement('div');
           sentenceDiv.className = 'sentence';
-          sentenceDiv.innerHTML = highlightWord(sentence, word);
+          
+          // Create timestamp link
+          const timestampLink = document.createElement('a');
+          timestampLink.className = 'timestamp';
+          timestampLink.textContent = sentenceData.timestamp;
+          timestampLink.href = `https://www.youtube.com/watch?v=${videoId}&t=${sentenceData.timestamp.replace(':', 'm')}s`;
+          timestampLink.target = '_blank';
+          timestampLink.onclick = function(e) {
+            e.preventDefault();
+            window.open(this.href, '_blank');
+          };
+          
+          // Create sentence content span
+          const contentSpan = document.createElement('span');
+          contentSpan.className = 'sentence-content';
+          contentSpan.innerHTML = highlightWord(sentenceData.sentence, word);
+          
+          // Append elements
+          sentenceDiv.appendChild(timestampLink);
+          sentenceDiv.appendChild(contentSpan);
           sentencesContainer.appendChild(sentenceDiv);
         });
         

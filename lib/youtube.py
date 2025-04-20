@@ -58,33 +58,38 @@ def find_most_frequent_words(text, top_x,output_file):
     for i, (word, count) in enumerate(top_new_words, 1):
         print(f"{i}. {word}: {count} times")
 
-def find_sentences_with_word(text, target_word):
+def find_sentences_with_word(video_id, target_word):
     """
-    Find all sentences containing a specific word in the transcript.
+    Find all sentences containing a specific word in the transcript, along with their timestamps.
     
     Args:
-        text (str): The transcript text
+        video_id (str): The YouTube video ID
         target_word (str): The word to search for
         
     Returns:
-        list: List of sentences containing the target word
+        list: List of tuples containing (sentence, timestamp) where the target word appears
     """
-    # Convert both text and target word to lowercase for case-insensitive search
-    text = text.lower()
-    target_word = target_word.lower()
-    
-    # Split text into sentences (using common sentence delimiters)
-    sentences = re.split(r'[.!?]+', text)
-    
-    # Find sentences containing the target word
-    matching_sentences = []
-    for sentence in sentences:
-        if target_word in sentence.lower():
-            # Clean up the sentence (remove extra whitespace)
-            cleaned_sentence = ' '.join(sentence.split())
-            matching_sentences.append(cleaned_sentence)
-    
-    return matching_sentences
+    try:
+        # Get the transcript with timestamps
+        transcript = YouTubeTranscriptApi().fetch(video_id, languages=['es'])
+        
+        # Convert target word to lowercase for case-insensitive search
+        target_word = target_word.lower()
+        
+        # Find sentences containing the target word
+        matching_sentences = []
+        for entry in transcript:
+            if target_word in entry.text.lower():
+                # Clean up the sentence (remove extra whitespace)
+                cleaned_sentence = ' '.join(entry.text.split())
+                # Format timestamp as MM:SS
+                timestamp = f"{int(entry.start // 60):02d}:{int(entry.start % 60):02d}"
+                matching_sentences.append((cleaned_sentence, timestamp))
+        
+        return matching_sentences
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
 
 # Main entry point
 def get_next_batch(video_id,batch_size):

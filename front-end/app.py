@@ -69,14 +69,19 @@ def search_sentences():
         return jsonify({"error": "Word and video_id are required"}), 400
     
     try:
-        # Get the transcript for the video
-        transcript = get_video_transcript(video_id)
-        if not transcript:
-            return jsonify({"error": "Could not fetch transcript"}), 404
-            
-        # Find sentences containing the word
-        sentences = find_sentences_with_word(transcript, word)
-        return jsonify({"sentences": sentences})
+        # Find sentences containing the word with timestamps
+        sentences_with_timestamps = find_sentences_with_word(video_id, word)
+        
+        # Format the results for the frontend
+        formatted_results = [
+            {
+                "sentence": sentence,
+                "timestamp": timestamp
+            }
+            for sentence, timestamp in sentences_with_timestamps
+        ]
+        
+        return jsonify({"sentences": formatted_results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
