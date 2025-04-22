@@ -229,7 +229,31 @@
           timestampLink.target = '_blank';
           timestampLink.onclick = function(e) {
             e.preventDefault();
-            window.open(this.href, '_blank');
+            // Get the video iframe
+            const videoIframe = document.querySelector('#videoContainer iframe');
+            if (videoIframe) {
+              // Extract minutes and seconds from timestamp (MM:SS format)
+              const [minutes, seconds] = sentenceData.timestamp.split(':').map(Number);
+              const totalSeconds = minutes * 60 + seconds;
+              
+              // Update the iframe src with the timestamp
+              const currentSrc = videoIframe.src;
+              const baseUrl = currentSrc.split('?')[0];
+              videoIframe.src = `${baseUrl}?start=${totalSeconds}&autoplay=1`;
+              
+              // Switch to Words tab
+              document.getElementById('wordsTab').classList.add('active');
+              document.getElementById('chosenWordsTab').classList.remove('active');
+              document.getElementById('historyTab').classList.remove('active');
+              document.getElementById('wordsContainer').style.display = 'block';
+              document.getElementById('chosenWordsContainer').style.display = 'none';
+              
+              // Close the sentences modal
+              modal.style.display = "none";
+            } else {
+              // Fallback to opening in new tab if iframe not found
+              window.open(this.href, '_blank');
+            }
           };
           
           // Create sentence content span
