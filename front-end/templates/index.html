@@ -117,6 +117,7 @@
   <div>
     <button class="tab active" id="wordsTab">Words</button>
     <button class="tab" id="chosenWordsTab">Chosen Words</button>
+    <button class="tab" id="historyTab">History</button>
   </div>
 
   <!-- Words Tab Content -->
@@ -161,24 +162,43 @@
     </div>
   </div>
 
+  <!-- Modal for displaying last viewed videos -->
+  <div id="historyModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="close">&times;</span>
+        <h2>Recently Viewed Videos</h2>
+      </div>
+      <div class="modal-body">
+        <div id="historyGrid" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/ag-grid-community@29.0.0/dist/ag-grid-community.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       let chosenWordsGridApi = null;
+      let historyGridApi = null;
       const modal = document.getElementById('sentencesModal');
+      const historyModal = document.getElementById('historyModal');
       const closeBtn = document.getElementsByClassName('close')[0];
       const translateBtn = document.getElementById('translateBtn');
       const addWordBtn = document.getElementById('addWordBtn');
 
-      // Close modal when clicking the X button
+      // Close modals when clicking the X button
       closeBtn.onclick = function() {
         modal.style.display = "none";
+        historyModal.style.display = "none";
       }
 
-      // Close modal when clicking outside of it
+      // Close modals when clicking outside of them
       window.onclick = function(event) {
         if (event.target == modal) {
           modal.style.display = "none";
+        }
+        if (event.target == historyModal) {
+          historyModal.style.display = "none";
         }
       }
 
@@ -226,10 +246,59 @@
         modal.style.display = "block";
       }
 
+      // Initialize history grid
+      function initHistoryGrid() {
+        const historyGridOptions = {
+          columnDefs: [
+            { headerName: "Video Title", field: "video_title", flex: 2 },
+            { headerName: "Video ID", field: "video_id", flex: 1 },
+            { headerName: "Viewed At", field: "viewed_at", flex: 1 }
+          ],
+          defaultColDef: {
+            resizable: true,
+            sortable: true
+          },
+          rowData: null,
+          rowSelection: 'single',
+          onRowClicked: function(event) {
+            const videoId = event.data.video_id;
+            document.getElementById('videoId').value = videoId;
+            // Switch to Words tab
+            document.getElementById('wordsTab').classList.add('active');
+            document.getElementById('chosenWordsTab').classList.remove('active');
+            document.getElementById('historyTab').classList.remove('active');
+            document.getElementById('wordsContainer').style.display = 'block';
+            document.getElementById('chosenWordsContainer').style.display = 'none';
+            // Load the video and its words
+            loadNextSetOfWords();
+            historyModal.style.display = "none";
+          }
+        };
+
+        const historyGridDiv = document.getElementById('historyGrid');
+        historyGridApi = new agGrid.Grid(historyGridDiv, historyGridOptions);
+      }
+
+      // Load history data
+      function loadHistory() {
+        fetch('/api/last_viewed_videos')
+          .then(response => response.json())
+          .then(data => {
+            if (historyGridApi) {
+              historyGridApi.gridOptions.api.setRowData(data);
+            }
+          })
+          .catch(error => {
+            console.error('Error loading history:', error);
+            alert('Error loading video history');
+          });
+      }
+
       // Toggle active tab
       document.getElementById('wordsTab').addEventListener('click', function() {
         document.getElementById('wordsTab').classList.add('active');
         document.getElementById('chosenWordsTab').classList.remove('active');
+        document.getElementById('historyTab').classList.remove('active');
         document.getElementById('wordsContainer').style.display = 'block';
         document.getElementById('chosenWordsContainer').style.display = 'none';
       });
@@ -237,9 +306,23 @@
       document.getElementById('chosenWordsTab').addEventListener('click', function() {
         document.getElementById('chosenWordsTab').classList.add('active');
         document.getElementById('wordsTab').classList.remove('active');
+        document.getElementById('historyTab').classList.remove('active');
         document.getElementById('wordsContainer').style.display = 'none';
         document.getElementById('chosenWordsContainer').style.display = 'block';
-        loadChosenWords(); // Load chosen words when tab is clicked
+        loadChosenWords();
+      });
+
+      document.getElementById('historyTab').addEventListener('click', function() {
+        document.getElementById('historyTab').classList.add('active');
+        document.getElementById('wordsTab').classList.remove('active');
+        document.getElementById('chosenWordsTab').classList.remove('active');
+        document.getElementById('wordsContainer').style.display = 'none';
+        document.getElementById('chosenWordsContainer').style.display = 'none';
+        historyModal.style.display = "block";
+        if (!historyGridApi) {
+          initHistoryGrid();
+        }
+        loadHistory();
       });
 
       // Custom Checkbox Renderer

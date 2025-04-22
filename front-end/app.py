@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.utils import get_parent_path
 from lib.youtube import get_next_batch, find_sentences_with_word, get_video_meta
 from lib.translation import translator
-from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words
+from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos
 
 app = Flask(__name__)
 
@@ -93,9 +93,16 @@ def get_video_metadata():
 
     try:
         metadata = get_video_meta(video_id)
+        # Save the viewed video to the database
+        save_last_viewed_video(video_id, metadata['title'])
         return jsonify(metadata)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/last_viewed_videos')
+def get_last_viewed_videos_route():
+    limit = request.args.get('limit', default=5, type=int)
+    return jsonify(get_last_viewed_videos(limit))
 
 if __name__ == "__main__":
     init_db()

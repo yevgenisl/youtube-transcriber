@@ -33,6 +33,16 @@ def init_db():
         )
     ''')
 
+    # Create last_viewed_videos table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS last_viewed_videos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            video_id TEXT NOT NULL UNIQUE,
+            video_title TEXT NOT NULL,
+            viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     file_path = get_parent_path('new_words.txt')
     # Load words from the text file and insert them into the database
     with open(file_path, 'r') as file:
@@ -87,3 +97,47 @@ def get_chosen_words():
         cursor.execute('SELECT word, translation, chosen_at FROM chosen_words')
         rows = cursor.fetchall()
         return [{"word": row[0], "translation": row[1], "chosen_at": row[2]} for row in rows]
+
+def save_last_viewed_video(video_id, video_title):
+    """
+    Save or update the last viewed video in the database.
+    
+    Args:
+        video_id (str): The YouTube video ID
+        video_title (str): The title of the video
+    """
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Use INSERT OR REPLACE to update if video_id exists
+        cursor.execute(
+            "INSERT OR REPLACE INTO last_viewed_videos (video_id, video_title, viewed_at) VALUES (?, ?, ?)",
+            (video_id, video_title, current_time)
+        )
+        conn.commit()
+
+def get_last_viewed_videos(limit=5):
+    """
+    Get the most recently viewed videos.
+    
+    Args:
+        limit (int): Maximum number of videos to return (default: 5)
+    
+    Returns:
+        list: List of dictionaries containing video_id, video_title, and viewed_at
+    """
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT video_id, video_title, viewed_at 
+            FROM last_viewed_videos 
+            ORDER BY viewed_at DESC 
+            LIMIT ?
+        ''', (limit,))
+        rows = cursor.fetchall()
+        return [{
+            "video_id": row[0],
+            "video_title": row[1],
+            "viewed_at": row[2]
+        } for row in rows]
