@@ -18,11 +18,12 @@ def get_video_meta(video_id):
             response_text = response.read()
             data = json.loads(response_text.decode())
             return {
-                'title': data.get('title', 'Unknown Title')
+                'title': data.get('title', 'Unknown Title'),
+                'oembed_html': data.get('html', '')
             }
     except Exception as e:
         print(f"Error getting video metadata: {e}")
-        return {'title': 'Unknown Title'}
+        return {'title': 'Unknown Title', 'oembed_html': ''}
 
 
 def get_video_transcript(video_id):

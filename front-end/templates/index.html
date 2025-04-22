@@ -127,6 +127,7 @@
     </div>
     <div id="videoMetadata" style="margin-bottom: 10px; display: none;">
       <h3 id="videoTitle"></h3>
+      <div id="videoContainer" style="margin: 20px 0;"></div>
     </div>
     <div id="myGrid" class="ag-theme-alpine"></div>
     <div id="buttonsContainer">
@@ -404,9 +405,15 @@
             // Display video metadata
             const metadataDiv = document.getElementById('videoMetadata');
             const titleElement = document.getElementById('videoTitle');
+            const videoContainer = document.getElementById('videoContainer');
             
             metadataDiv.style.display = 'block';
             titleElement.textContent = data.title;
+            
+            // Embed the video if oEmbed HTML is available
+            if (data.oembed_html) {
+              videoContainer.innerHTML = data.oembed_html;
+            }
             
             // Then fetch the next set of words
             return fetch(`/api/next_set_of_words?video_id=${videoId}`);
