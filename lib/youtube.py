@@ -5,6 +5,25 @@ import textwrap
 import re
 from collections import Counter
 from lib.utils import get_parent_path
+import urllib.request
+import json
+import urllib
+import pprint
+
+
+def get_video_meta(video_id):
+    url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+    try:
+        with urllib.request.urlopen(url) as response:
+            response_text = response.read()
+            data = json.loads(response_text.decode())
+            return {
+                'title': data.get('title', 'Unknown Title')
+            }
+    except Exception as e:
+        print(f"Error getting video metadata: {e}")
+        return {'title': 'Unknown Title'}
+
 
 def get_video_transcript(video_id):
     try:

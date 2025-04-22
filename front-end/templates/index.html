@@ -125,6 +125,9 @@
       <label for="videoId">YouTube Video ID:</label>
       <input type="text" id="videoId" placeholder="Enter video ID" style="margin-left: 10px; padding: 5px;">
     </div>
+    <div id="videoMetadata" style="margin-bottom: 10px; display: none;">
+      <h3 id="videoTitle"></h3>
+    </div>
     <div id="myGrid" class="ag-theme-alpine"></div>
     <div id="buttonsContainer">
         <button id="submitBtn">Submit Checked</button>
@@ -310,7 +313,11 @@
       document.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
           event.preventDefault(); // Prevent default behavior like form submit
-          submitCheckedWords();
+          if (event.target.id === 'videoId') {
+            loadNextSetOfWords();
+          } else {
+            submitCheckedWords();
+          }
         }
       });
 
@@ -385,7 +392,25 @@
           return;
         }
 
-        fetch(`/api/next_set_of_words?video_id=${videoId}`)
+        // First fetch video metadata
+        fetch(`/api/video_metadata?video_id=${videoId}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              alert('Error getting video metadata: ' + data.error);
+              return;
+            }
+            
+            // Display video metadata
+            const metadataDiv = document.getElementById('videoMetadata');
+            const titleElement = document.getElementById('videoTitle');
+            
+            metadataDiv.style.display = 'block';
+            titleElement.textContent = data.title;
+            
+            // Then fetch the next set of words
+            return fetch(`/api/next_set_of_words?video_id=${videoId}`);
+          })
           .then(response => response.json())
           .then(data => {
             gridOptions.api.setRowData(data);
