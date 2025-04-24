@@ -149,10 +149,29 @@ The application uses SQLite with two main tables:
 - Uses SQLite for data persistence
 - Integrates with a backend library for YouTube transcript processing
 
-## Running the Application
+## Running the Application in local venv
 
 ```bash
 python front-end/app.py
+```
+
+## Running application in fly.io
+```bash
+# create persistent volume for the DB and files
+flyctl volume create data -r mad -s 1
+
+# Deploy new application (when there is no fly.toml)
+flyctl deploy
+# Launch a new application (reuse existin fly.toml)
+flyctl launch
+# Suspend running application
+flyctl apps suspend youtube-transcriber
+# resume running application
+flyctl apps resume youtube-transcriber
+# debug
+fly ssh console
+#
+flyctl scale count 0
 ```
 
 The application will start in debug mode and be accessible at `http://localhost:5000`.

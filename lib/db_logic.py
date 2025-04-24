@@ -6,7 +6,10 @@ import sqlite3
 from datetime import datetime
 from lib.utils import get_parent_path
 
-DB_FILE = get_parent_path('words.db')
+# Get database and file paths from environment variables or use defaults
+DB_FILE = os.getenv('DB_FILE', get_parent_path('words.db'))
+NEW_WORDS_FILE = os.getenv('NEW_WORDS_FILE', get_parent_path('new_words.txt'))
+MOST_FREQUENT_WORDS_FILE = os.getenv('MOST_FREQUENT_WORDS_FILE', get_parent_path('most_frequent_words.txt'))
 
 # Function to initialize the database
 def init_db():
@@ -43,15 +46,17 @@ def init_db():
         )
     ''')
 
-    file_path = get_parent_path('new_words.txt')
     # Load words from the text file and insert them into the database
-    with open(file_path, 'r') as file:
-        words = file.readlines()
+    try:
+        with open(NEW_WORDS_FILE, 'r') as file:
+            words = file.readlines()
 
-    for word in words:
-        word = word.strip()  # Remove leading/trailing spaces or newlines
-        if word:  # Ensure the line is not empty
-            c.execute('INSERT OR IGNORE INTO words (word) VALUES (?)', (word,))
+        for word in words:
+            word = word.strip()  # Remove leading/trailing spaces or newlines
+            if word:  # Ensure the line is not empty
+                c.execute('INSERT OR IGNORE INTO words (word) VALUES (?)', (word,))
+    except FileNotFoundError:
+        print(f"Warning: {NEW_WORDS_FILE} not found. Database will be initialized without initial words.")
 
     # Commit changes and close the connection
     conn.commit()
@@ -141,3 +146,22 @@ def get_last_viewed_videos(limit=5):
             "video_title": row[1],
             "viewed_at": row[2]
         } for row in rows]
+
+def delete_video_and_data(video_id):
+    """Delete a video and all its associated data from the database."""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cur = conn.cursor()
+        
+        # Delete from video_history table
+        cur.execute("DELETE FROM last_viewed_videos WHERE video_id = ?", (video_id,))
+        
+        conn.commit()
+
+        return {'status': 'success'}
+        
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
+        return {'status': 'error', 'message': str(e)}

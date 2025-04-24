@@ -1,9 +1,10 @@
 import requests
+import os
 
 class Translator:
     def __init__(self):
-        # LibreTranslate API endpoint
-        self.api_url = "http://localhost:5000/translate"
+        # Get LibreTranslate API endpoint from environment variable or use default
+        self.api_url = os.getenv('LIBRETRANSLATE_API_URL', 'http://localhost:5000/translate')
         
     def translate(self, word, timeout=2):
         """

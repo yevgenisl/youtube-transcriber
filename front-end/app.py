@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.utils import get_parent_path
 from lib.youtube import get_next_batch, find_sentences_with_word, get_video_meta
 from lib.translation import translator
-from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos
+from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos,delete_video_and_data
 
 app = Flask(__name__)
 
@@ -103,6 +103,26 @@ def get_video_metadata():
 def get_last_viewed_videos_route():
     limit = request.args.get('limit', default=5, type=int)
     return jsonify(get_last_viewed_videos(limit))
+
+@app.route('/api/delete_video', methods=['POST'])
+def delete_video():
+    try:
+        data = request.get_json()
+        video_id = data.get('video_id')
+        
+        if not video_id:
+            return jsonify({'status': 'error', 'message': 'Video ID is required'}), 400
+            
+        #return jsonify({'status': 'error', 'message': 'Video ID is required'}), 400
+        result = delete_video_and_data(video_id)
+        
+        if result['status'] == 'error':
+            return jsonify(result), 500
+            
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == "__main__":
     init_db()

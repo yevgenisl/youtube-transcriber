@@ -110,9 +110,40 @@
       background-color: #2196F3;
       color: white;
     }
+    /* Notification styles */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      z-index: 1001;
+      animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+    }
+    .notification.success {
+      background-color: #4CAF50;
+    }
+    .notification.error {
+      background-color: #f44336;
+    }
+    .notification.warning {
+      background-color: #ff9800;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
   </style>
 </head>
 <body>
+
+  <div id="notificationContainer"></div>
 
   <div>
     <button class="tab active" id="wordsTab">Words</button>
@@ -122,10 +153,6 @@
 
   <!-- Words Tab Content -->
   <div id="wordsContainer">
-    <div style="margin-bottom: 10px;">
-      <label for="videoId">YouTube Video ID:</label>
-      <input type="text" id="videoId" placeholder="Enter video ID" style="margin-left: 10px; padding: 5px;">
-    </div>
     <div id="videoMetadata" style="margin-bottom: 10px; display: none;">
       <h3 id="videoTitle"></h3>
       <div id="videoContainer" style="margin: 20px 0;"></div>
@@ -168,6 +195,10 @@
       <div class="modal-header">
         <span class="close">&times;</span>
         <h2>Recently Viewed Videos</h2>
+        <div style="margin: 10px 0;">
+          <input type="text" id="videoId" placeholder="Enter YouTube Video ID" style="padding: 5px; margin-right: 10px;">
+          <button id="addNewVideoBtn">Add New Video</button>
+        </div>
       </div>
       <div class="modal-body">
         <div id="historyGrid" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
@@ -276,7 +307,51 @@
           columnDefs: [
             { headerName: "Video Title", field: "video_title", flex: 2 },
             { headerName: "Video ID", field: "video_id", flex: 1 },
-            { headerName: "Viewed At", field: "viewed_at", flex: 1 }
+            { headerName: "Viewed At", field: "viewed_at", flex: 1 },
+            { 
+              headerName: "Actions", 
+              field: "actions",
+              flex: 1,
+              cellRenderer: function(params) {
+                const button = document.createElement('button');
+                button.innerHTML = 'Delete';
+                button.style.backgroundColor = '#f44336';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.padding = '5px 10px';
+                button.style.borderRadius = '4px';
+                button.style.cursor = 'pointer';
+                
+                button.addEventListener('click', function(e) {
+                  e.stopPropagation(); // Prevent row click event
+                  if (confirm(`Are you sure you want to delete video "${params.data.video_title}"?`)) {
+                    fetch('/api/delete_video', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ video_id: params.data.video_id })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.status === 'success') {
+                        showNotification(`Video "${params.data.video_title}" deleted successfully`);
+                        // Refresh the history grid
+                        loadHistory();
+                      } else {
+                        showNotification(`Error deleting video: ${data.message}`, 'error');
+                      }
+                    })
+                    .catch(error => {
+                      console.error('Error:', error);
+                      showNotification('Error deleting video', 'error');
+                    });
+                  }
+                });
+                
+                return button;
+              }
+            }
           ],
           defaultColDef: {
             resizable: true,
@@ -301,6 +376,24 @@
 
         const historyGridDiv = document.getElementById('historyGrid');
         historyGridApi = new agGrid.Grid(historyGridDiv, historyGridOptions);
+
+        // Add event listener for the Add New Video button
+        document.getElementById('addNewVideoBtn').addEventListener('click', function() {
+          const videoId = document.getElementById('videoId').value;
+          if (!videoId) {
+            showNotification('Please enter a video ID', 'error');
+            return;
+          }
+          // Switch to Words tab
+          document.getElementById('wordsTab').classList.add('active');
+          document.getElementById('chosenWordsTab').classList.remove('active');
+          document.getElementById('historyTab').classList.remove('active');
+          document.getElementById('wordsContainer').style.display = 'block';
+          document.getElementById('chosenWordsContainer').style.display = 'none';
+          // Load the video and its words
+          loadNextSetOfWords();
+          historyModal.style.display = "none";
+        });
       }
 
       // Load history data
@@ -379,7 +472,16 @@
           minWidth: 100,
           resizable: true,
         },
-        rowData: null
+        rowData: null,
+        onRowClicked: function(event) {
+          // Ignore clicks on the checkbox itself
+          if (event.event.target.type === 'checkbox') {
+            return;
+          }
+          // Toggle the 'learn' value when row is clicked
+          const currentValue = event.data.learn;
+          event.node.setDataValue('learn', !currentValue);
+        }
       };
 
       const gridDiv = document.getElementById('myGrid');
@@ -391,6 +493,19 @@
           gridOptions.api.setRowData(data);
         });
 
+      // Function to show notification
+      function showNotification(message, type = 'success', duration = 3000) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.getElementById('notificationContainer').appendChild(notification);
+        
+        // Remove notification after specified duration
+        setTimeout(() => {
+          notification.remove();
+        }, duration);
+      }
+
       // Submit logic
       function submitCheckedWords() {
         const checkedWords = [];
@@ -400,18 +515,57 @@
           }
         });
 
-        fetch('/api/save', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ words: checkedWords })
+        if (checkedWords.length === 0) {
+          showNotification('No words selected to save', 'error');
+          return;
+        }
+
+        // First get translations for all words
+        Promise.all(checkedWords.map(word => 
+          fetch('/api/translate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ word: word })
+          }).then(response => response.json())
+        ))
+        .then(translationResults => {
+          // Then save the words
+          return fetch('/api/save', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ words: checkedWords })
+          })
+          .then(res => res.json())
+          .then(res => {
+            if (res.status !== 'success') {
+              throw new Error(res.message);
+            }
+            return translationResults;
+          });
         })
-        .then(res => res.json())
-        .then(res => {
-          if (res.status !== 'success') {
-            alert('Error saving: ' + res.message);
-          }
+        .then(translationResults => {
+          const wordsWithTranslations = checkedWords.map((word, index) => {
+            const translation = translationResults[index];
+            return translation.error ? 
+              `${word} (Translation API not responsive)` : 
+              `${word} (${translation.translation})`;
+          });
+          showNotification(`Saved words: ${wordsWithTranslations.join(', ')}`);
+          
+          // Uncheck all selected words after successful save
+          gridOptions.api.forEachNode(node => {
+            if (node.data.learn === true) {
+              node.setDataValue('learn', false);
+            }
+          });
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showNotification(`Error saving words: ${error.message}`, 'error');
         });
       }
 
@@ -422,7 +576,7 @@
         if (event.key === 'Enter') {
           event.preventDefault(); // Prevent default behavior like form submit
           if (event.target.id === 'videoId') {
-            loadNextSetOfWords();
+            document.getElementById('addNewVideoBtn').click();
           } else {
             submitCheckedWords();
           }
@@ -500,11 +654,16 @@
           return;
         }
 
+        // Show loading message
+        gridOptions.api.showLoadingOverlay();
+        gridOptions.api.setRowData([{ word: 'Loading new words...', learn: false }]);
+
         // First fetch video metadata
         fetch(`/api/video_metadata?video_id=${videoId}`)
           .then(response => response.json())
           .then(data => {
             if (data.error) {
+              gridOptions.api.hideOverlay();
               alert('Error getting video metadata: ' + data.error);
               return;
             }
@@ -527,10 +686,12 @@
           })
           .then(response => response.json())
           .then(data => {
+            gridOptions.api.hideOverlay();
             gridOptions.api.setRowData(data);
           })
           .catch(error => {
             console.error('Error:', error);
+            gridOptions.api.hideOverlay();
             alert('Error loading words. Please check the video ID and try again.');
           });
       }
@@ -561,14 +722,14 @@
           .then(response => response.json())
           .then(data => {
             if (data.error) {
-              alert(data.error);
+              showNotification(`Translation API not responsive for "${selectedText}"`, 'warning', 5000);
             } else {
-              alert(`Translation: ${data.translation}`);
+              showNotification(`Translation of "${selectedText}": ${data.translation}`);
             }
           })
           .catch(error => {
             console.error('Error:', error);
-            alert('Error translating text');
+            showNotification(`Translation API not responsive for "${selectedText}"`, 'warning', 5000);
           });
         }
       });
