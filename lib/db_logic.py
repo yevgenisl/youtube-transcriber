@@ -165,3 +165,10 @@ def delete_video_and_data(video_id):
             conn.rollback()
             conn.close()
         return {'status': 'error', 'message': str(e)}
+
+def delete_chosen_words(words):
+    with sqlite3.connect(DB_FILE) as conn:
+        cursor = conn.cursor()
+        for word in words:
+            cursor.execute("DELETE FROM chosen_words WHERE word = ?", (word,))
+        conn.commit()

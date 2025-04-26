@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from lib.utils import get_parent_path
 from lib.youtube import get_next_batch, find_sentences_with_word, get_video_meta
 from lib.translation import translator
-from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos,delete_video_and_data
+from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos,delete_video_and_data, delete_chosen_words
 
 app = Flask(__name__)
 
@@ -133,6 +133,16 @@ def delete_video():
         
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route("/api/delete_chosen_words", methods=["POST"])
+def delete_chosen_words_route():
+    data = request.get_json()
+    if not data or "words" not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+    words = data["words"]
+    delete_chosen_words(words)
+    return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     init_db()

@@ -185,6 +185,7 @@
     <div id="chosenWordsGrid" class="ag-theme-alpine" style="height: 400px; width: 100%;"></div>
     <div id="chosenWordsButtonsContainer" style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
       <button id="searchSentencesBtn" disabled>Search Sentences</button>
+      <button id="deleteSelectedBtn" disabled>Delete Selected</button>
     </div>
   </div>
 
@@ -704,6 +705,7 @@
             onSelectionChanged: function() {
               const selectedRows = chosenWordsGridApi.gridOptions.api.getSelectedRows();
               document.getElementById('searchSentencesBtn').disabled = selectedRows.length === 0;
+              document.getElementById('deleteSelectedBtn').disabled = selectedRows.length === 0;
             }
           };
 
@@ -757,6 +759,39 @@
           .then(data => {
             chosenWordsGridApi.gridOptions.api.setRowData(data);
           });
+
+        // Delete selected words
+        document.getElementById('deleteSelectedBtn').addEventListener('click', function() {
+          const selectedRows = chosenWordsGridApi.gridOptions.api.getSelectedRows();
+          if (selectedRows.length === 0) {
+            showNotification('Please select words to delete', 'error');
+            return;
+          }
+
+          const words = selectedRows.map(row => row.word);
+          
+          fetch('/api/delete_chosen_words', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ words: words })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+              showNotification(`Deleted ${words.length} word(s) successfully`);
+              // Refresh the chosen words grid
+              loadChosenWords();
+            } else {
+              showNotification('Error deleting words: ' + data.message, 'error');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error deleting words', 'error');
+          });
+        });
       }
 
       // Load Next Set of Words
