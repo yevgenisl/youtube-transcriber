@@ -126,6 +126,35 @@
       background-color: #2196F3;
       color: white;
     }
+    /* AG Grid Filter Button Styles */
+    .ag-header-cell .ag-icon-filter {
+      color: #2196F3 !important;
+      font-size: 18px !important;
+      padding: 8px !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+    }
+    .ag-header-cell .ag-icon-filter:hover {
+      background-color: #e3f2fd !important;
+      border-radius: 4px !important;
+    }
+    .ag-filter-toolpanel {
+      min-width: 200px !important;
+    }
+    .ag-filter-toolpanel-header {
+      padding: 8px !important;
+    }
+    .ag-filter-toolpanel-body {
+      padding: 8px !important;
+    }
+    .ag-filter-toolpanel-button {
+      padding: 8px 12px !important;
+      margin: 4px !important;
+    }
+    .ag-filter-toolpanel-input {
+      padding: 8px !important;
+      margin: 4px !important;
+    }
     /* Notification styles */
     .notification {
       position: fixed;
@@ -667,7 +696,8 @@
           event.preventDefault(); // Prevent default behavior like form submit
           if (event.target.id === 'videoId') {
             document.getElementById('addNewVideoBtn').click();
-          } else {
+          } else if (document.getElementById('wordsTab').classList.contains('active')) {
+            // Only submit checked words if we're on the Words tab
             submitCheckedWords();
           }
         }
@@ -682,26 +712,54 @@
                 headerName: "Word", 
                 field: "word",
                 checkboxSelection: true,
-                headerCheckboxSelection: true
+                headerCheckboxSelection: true,
+                onCellClicked: function(params) {
+                  // Toggle the row selection when clicking on the Word cell
+                  // while maintaining other selections
+                  const currentSelection = params.node.isSelected();
+                  params.node.setSelected(!currentSelection);
+                },
+                filter: 'agTextColumnFilter',
+                filterParams: {
+                  filterOptions: [
+                    'contains',
+                    'notContains',
+                    'startsWith',
+                    'endsWith',
+                    'equals'
+                  ],
+                  defaultOption: 'contains',
+                  buttons: ['apply', 'reset'],
+                  closeOnApply: true,
+                  filterPlaceholder: 'Filter words...',
+                  maxWidth: '200px'
+                },
+                floatingFilter: true,
+                floatingFilterComponentParams: {
+                  suppressFilterButton: false
+                }
               },
-              { headerName: "Translation", field: "translation" },
-              { headerName: "Chosen At", field: "chosen_at" }
+              { 
+                headerName: "Translation", 
+                field: "translation",
+                suppressMovable: true
+              },
+              { 
+                headerName: "Chosen At", 
+                field: "chosen_at",
+                suppressMovable: true
+              }
             ],
             defaultColDef: {
               flex: 1,
               minWidth: 100,
               resizable: true,
+              suppressMovable: true, // Disable column reordering for all columns
+              filter: false // Disable filtering for other columns
             },
             rowData: null,
             rowSelection: 'multiple',
-            onRowClicked: function(event) {
-              // Ignore clicks on the checkbox itself
-              if (event.event.target.type === 'checkbox') {
-                return;
-              }
-              // Toggle the row selection
-              event.node.setSelected(!event.node.isSelected());
-            },
+            suppressRowClickSelection: true, // This prevents row click from affecting selection
             onSelectionChanged: function() {
               const selectedRows = chosenWordsGridApi.gridOptions.api.getSelectedRows();
               document.getElementById('searchSentencesBtn').disabled = selectedRows.length === 0;
