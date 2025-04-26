@@ -3,4 +3,5 @@ tube-summary/*
 TODO
 */__pycache__/*
 *.db
+data/*
 new_words.txt

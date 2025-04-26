@@ -9,6 +9,8 @@ import urllib.request
 import json
 import urllib
 import pprint
+import os
+import pickle
 
 
 def get_video_meta(video_id):
@@ -27,12 +29,35 @@ def get_video_meta(video_id):
 
 
 def get_video_transcript(video_id):
+    cache_dir = os.path.join(get_parent_path("data/cache"))
+    cache_file = os.path.join(cache_dir, f"transcript_{video_id}.pkl")
+    
+    # Check if cached file exists
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'rb') as f:
+                transcript = pickle.load(f)
+            full_text = " ".join([entry.text for entry in transcript])
+            return full_text
+        except Exception as e:
+            print(f"Error reading cached transcript: {e}")
+    
     try:
-        transcript=YouTubeTranscriptApi().fetch(video_id, languages=['es'])
+        # If no cache exists or cache read failed, fetch from API
+        transcript = YouTubeTranscriptApi().fetch(video_id, languages=['es'])
+        
+        # Save to cache
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(transcript, f)
+        except Exception as e:
+            print(f"Error saving transcript to cache: {e}")
+        
         full_text = " ".join([entry.text for entry in transcript])
         return full_text
     except Exception as e:
         print(f"Error: {e}")
+        return None
 
 # Function to analyze and find the most used words
 def find_most_frequent_words(text, top_x,output_file):
