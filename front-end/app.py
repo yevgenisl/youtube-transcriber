@@ -1,6 +1,8 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import os,sys
 from datetime import datetime
+import io
+import csv
 
 # Add the 'lib' directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -143,6 +145,47 @@ def delete_chosen_words_route():
     words = data["words"]
     delete_chosen_words(words)
     return jsonify({"status": "success"})
+
+@app.route('/api/export_words', methods=['POST'])
+def export_words():
+    try:
+        # Check if the request has JSON content
+        if not request.is_json:
+            return jsonify({'status': 'error', 'message': 'Content-Type must be application/json'}), 415
+
+        data = request.get_json()
+        if not data or 'words' not in data:
+            return jsonify({'status': 'error', 'message': 'No words provided'}), 400
+
+        words_data = data['words']
+        if not words_data:
+            return jsonify({'status': 'error', 'message': 'Empty words list provided'}), 400
+
+        # Create a CSV file in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['Word', 'Translation'])
+        
+        # Write data
+        for word in words_data:
+            writer.writerow([word['word'], word['translation']])
+        
+        # Prepare the response
+        output.seek(0)
+        csv_data = output.getvalue()
+        output.close()
+        
+        return Response(
+            csv_data,
+            mimetype="text/csv",
+            headers={
+                "Content-disposition": "attachment; filename=exported_words.csv"
+            }
+        )
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == "__main__":
     init_db()
