@@ -163,8 +163,8 @@
 
   <div>
     <button class="tab active" id="wordsTab">New Words</button>
-    <button class="tab" id="historyTab">History</button>
     <button class="tab" id="chosenWordsTab">Chosen Words</button>
+    <button class="tab" id="historyTab">Videos</button>    
   </div>
 
   <!-- Words Tab Content -->
@@ -443,15 +443,45 @@
             showNotification('Please enter a video ID', 'error');
             return;
           }
-          // Switch to Words tab
-          document.getElementById('wordsTab').classList.add('active');
-          document.getElementById('chosenWordsTab').classList.remove('active');
-          document.getElementById('historyTab').classList.remove('active');
-          document.getElementById('wordsContainer').style.display = 'block';
-          document.getElementById('chosenWordsContainer').style.display = 'none';
-          // Load the video and its words
-          loadNextSetOfWords();
-          historyModal.style.display = "none";
+
+          // First check if video already exists in history
+          fetch('/api/last_viewed_videos')
+            .then(response => response.json())
+            .then(videos => {
+              const videoExists = videos.some(video => video.video_id === videoId);
+              if (videoExists) {
+                showNotification('This video already exists in your history', 'warning');
+                return;
+              }
+
+              // If video doesn't exist, proceed with metadata validation
+              return fetch(`/api/video_metadata?video_id=${videoId}`);
+            })
+            .then(response => {
+              if (!response) return; // Skip if video exists check failed
+              return response.json();
+            })
+            .then(data => {
+              if (!data) return; // Skip if video exists check failed
+              
+              if (data.error) {
+                showNotification(`Error: ${data.error}`, 'error');
+                return;
+              }
+              
+              // If metadata is valid, proceed with loading the video
+              document.getElementById('wordsTab').classList.add('active');
+              document.getElementById('chosenWordsTab').classList.remove('active');
+              document.getElementById('historyTab').classList.remove('active');
+              document.getElementById('wordsContainer').style.display = 'block';
+              document.getElementById('chosenWordsContainer').style.display = 'none';
+              loadNextSetOfWords();
+              historyModal.style.display = "none";
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              showNotification('Error validating video ID', 'error');
+            });
         });
       }
 

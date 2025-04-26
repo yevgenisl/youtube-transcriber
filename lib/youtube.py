@@ -19,13 +19,15 @@ def get_video_meta(video_id):
         with urllib.request.urlopen(url) as response:
             response_text = response.read()
             data = json.loads(response_text.decode())
+            if 'title' not in data:
+                raise ValueError("Title not found in video metadata")
             return {
-                'title': data.get('title', 'Unknown Title'),
+                'title': data['title'],
                 'oembed_html': data.get('html', '')
             }
     except Exception as e:
         print(f"Error getting video metadata: {e}")
-        return {'title': 'Unknown Title', 'oembed_html': ''}
+        raise
 
 
 def get_video_transcript(video_id):
