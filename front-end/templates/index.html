@@ -217,10 +217,29 @@
       const translateBtn = document.getElementById('translateBtn');
       const addWordBtn = document.getElementById('addWordBtn');
 
+      // Load last viewed video on page load
+      fetch('/api/last_viewed_video')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success' && data.video) {
+            document.getElementById('videoId').value = data.video.video_id;
+            loadNextSetOfWords();
+          }
+        })
+        .catch(error => {
+          console.error('Error loading last viewed video:', error);
+        });
+
       // Close modals when clicking the X button
       closeBtn.onclick = function() {
         modal.style.display = "none";
         historyModal.style.display = "none";
+        // Switch to Words tab when history modal is closed
+        document.getElementById('wordsTab').classList.add('active');
+        document.getElementById('chosenWordsTab').classList.remove('active');
+        document.getElementById('historyTab').classList.remove('active');
+        document.getElementById('wordsContainer').style.display = 'block';
+        document.getElementById('chosenWordsContainer').style.display = 'none';
       }
 
       // Close modals when clicking outside of them
@@ -230,6 +249,12 @@
         }
         if (event.target == historyModal) {
           historyModal.style.display = "none";
+          // Switch to Words tab when history modal is closed
+          document.getElementById('wordsTab').classList.add('active');
+          document.getElementById('chosenWordsTab').classList.remove('active');
+          document.getElementById('historyTab').classList.remove('active');
+          document.getElementById('wordsContainer').style.display = 'block';
+          document.getElementById('chosenWordsContainer').style.display = 'none';
         }
       }
 
@@ -588,7 +613,12 @@
         if (!chosenWordsGridApi) {
           const chosenWordsGridOptions = {
             columnDefs: [
-              { headerName: "Word", field: "word" },
+              { 
+                headerName: "Word", 
+                field: "word",
+                checkboxSelection: true,
+                headerCheckboxSelection: true
+              },
               { headerName: "Translation", field: "translation" },
               { headerName: "Chosen At", field: "chosen_at" }
             ],
@@ -598,7 +628,15 @@
               resizable: true,
             },
             rowData: null,
-            rowSelection: 'single',
+            rowSelection: 'multiple',
+            onRowClicked: function(event) {
+              // Ignore clicks on the checkbox itself
+              if (event.event.target.type === 'checkbox') {
+                return;
+              }
+              // Toggle the row selection
+              event.node.setSelected(!event.node.isSelected());
+            },
             onSelectionChanged: function() {
               const selectedRows = chosenWordsGridApi.gridOptions.api.getSelectedRows();
               document.getElementById('searchSentencesBtn').disabled = selectedRows.length === 0;
@@ -612,7 +650,7 @@
           document.getElementById('searchSentencesBtn').addEventListener('click', function() {
             const selectedRows = chosenWordsGridApi.gridOptions.api.getSelectedRows();
             if (selectedRows.length > 0) {
-              const word = selectedRows[0].word;
+              const words = selectedRows.map(row => row.word);
               const videoId = document.getElementById('videoId').value;
               
               if (!videoId) {
@@ -620,19 +658,31 @@
                 return;
               }
 
-              fetch(`/api/search_sentences?word=${encodeURIComponent(word)}&video_id=${encodeURIComponent(videoId)}`)
-                .then(response => response.json())
-                .then(data => {
-                  if (data.error) {
-                    alert(data.error);
+              // Search for sentences for each selected word
+              Promise.all(words.map(word => 
+                fetch(`/api/search_sentences?word=${encodeURIComponent(word)}&video_id=${encodeURIComponent(videoId)}`)
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.error) {
+                      return { word, error: data.error };
+                    }
+                    return { word, sentences: data.sentences };
+                  })
+              ))
+              .then(results => {
+                // Display sentences for each word
+                results.forEach(result => {
+                  if (result.error) {
+                    showNotification(`Error searching for "${result.word}": ${result.error}`, 'error');
                   } else {
-                    displaySentences(word, data.sentences);
+                    displaySentences(result.word, result.sentences);
                   }
-                })
-                .catch(error => {
-                  console.error('Error:', error);
-                  alert('Error searching for sentences');
                 });
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                showNotification('Error searching for sentences', 'error');
+              });
             }
           });
         }
@@ -644,7 +694,6 @@
             chosenWordsGridApi.gridOptions.api.setRowData(data);
           });
       }
-
 
       // Load Next Set of Words
       function loadNextSetOfWords() {

@@ -104,6 +104,16 @@ def get_last_viewed_videos_route():
     limit = request.args.get('limit', default=5, type=int)
     return jsonify(get_last_viewed_videos(limit))
 
+@app.route('/api/last_viewed_video')
+def get_last_viewed_video_route():
+    try:
+        videos = get_last_viewed_videos(1)  # Get only the most recent video
+        if videos:
+            return jsonify({'status': 'success', 'video': videos[0]})
+        return jsonify({'status': 'success', 'video': None})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/api/delete_video', methods=['POST'])
 def delete_video():
     try:
