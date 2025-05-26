@@ -155,6 +155,18 @@ The application uses SQLite with two main tables:
 python front-end/app.py
 ```
 
+## Running End-to-End Tests
+
+The project includes End-to-End (E2E) tests implemented using Robot Framework. These tests cover the API endpoints of the Flask application to ensure they are functioning correctly.
+
+To run the E2E tests, execute the following command from the project root directory:
+
+```bash
+./run_e2e_tests.sh
+```
+
+After the tests complete, Robot Framework will generate test reports (e.g., `log.html`, `report.html`, `output.xml`) in the directory where the command was run (by default, the project root). These reports provide detailed information about the test execution and results.
+
 ## Running application in fly.io
 ```bash
 # create persistent volume for the DB and files
