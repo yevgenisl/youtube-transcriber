@@ -11,6 +11,7 @@ import urllib
 import pprint
 import os
 import pickle
+from memory_profiler import profile
 
 
 def get_video_meta(video_id):
@@ -30,6 +31,7 @@ def get_video_meta(video_id):
         raise
 
 
+@profile
 def get_video_transcript(video_id):
     cache_dir = os.path.join(get_parent_path("data/cache"))
     cache_file = os.path.join(cache_dir, f"transcript_{video_id}.pkl")
@@ -62,6 +64,7 @@ def get_video_transcript(video_id):
         return None
 
 # Function to analyze and find the most used words
+@profile
 def find_most_frequent_words(text, top_x,output_file):
     # Normalize text by converting to lowercase and removing punctuation
     text = text.lower()
@@ -74,6 +77,7 @@ def find_most_frequent_words(text, top_x,output_file):
     word_counts = Counter(words)
 
     # Read existing words from the output file to avoid duplicates
+    # WARNING: If the output_file is extremely large, reading it all into existing_words set might consume significant memory.
     existing_words = set()
     try:
         with open(output_file, 'r') as f:
@@ -105,6 +109,7 @@ def find_most_frequent_words(text, top_x,output_file):
     for i, (word, count) in enumerate(top_new_words, 1):
         print(f"{i}. {word}: {count} times")
 
+@profile
 def find_sentences_with_word(video_id, target_word):
     """
     Find all sentences containing a specific word in the transcript, along with their timestamps.
@@ -116,10 +121,45 @@ def find_sentences_with_word(video_id, target_word):
     Returns:
         list: List of tuples containing (sentence, timestamp) where the target word appears
     """
+    cache_dir = os.path.join(get_parent_path("data/cache"))
+    cache_file = os.path.join(cache_dir, f"transcript_{video_id}.pkl")
+
+    # Ensure cache directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+
+    transcript = None
+    # Check if cached file exists
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'rb') as f:
+                transcript = pickle.load(f)
+        except Exception as e:
+            print(f"Error reading cached transcript for {video_id}: {e}")
+            # Fall through to fetch from API if cache read fails
+
+    if transcript is None: # If not cached or cache read failed
+        try:
+            # Fetch from API
+            transcript_list = YouTubeTranscriptApi().fetch(video_id, languages=['es'])
+            
+            # Save to cache
+            try:
+                with open(cache_file, 'wb') as f:
+                    pickle.dump(transcript_list, f)
+                transcript = transcript_list # Use the fetched transcript
+            except Exception as e:
+                print(f"Error saving transcript to cache for {video_id}: {e}")
+                # If saving fails, proceed with the fetched transcript anyway
+                transcript = transcript_list
+        except Exception as e:
+            print(f"Error fetching transcript for {video_id}: {e}")
+            return [] # Return empty if API fetch fails
+
+    if transcript is None: # Should not happen if API fetch was successful but as a safeguard
+        print(f"Transcript for {video_id} is None after fetch attempt.")
+        return []
+
     try:
-        # Get the transcript with timestamps
-        transcript = YouTubeTranscriptApi().fetch(video_id, languages=['es'])
-        
         # Convert target word to lowercase for case-insensitive search
         target_word = target_word.lower()
         
@@ -139,6 +179,7 @@ def find_sentences_with_word(video_id, target_word):
         return []
 
 # Main entry point
+@profile
 def get_next_batch(video_id,batch_size):
     transcript_text=get_video_transcript(video_id)
     output_file = get_parent_path("most_frequent_words.txt")

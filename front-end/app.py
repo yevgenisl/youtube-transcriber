@@ -11,6 +11,7 @@ from lib.utils import get_parent_path
 from lib.youtube import get_next_batch, find_sentences_with_word, get_video_meta
 from lib.translation import translator
 from lib.db_logic import init_db, get_all_words, save_chosen_words, get_chosen_words, save_last_viewed_video, get_last_viewed_videos,delete_video_and_data, delete_chosen_words
+from memory_profiler import profile
 
 app = Flask(__name__)
 
@@ -19,10 +20,12 @@ def index():
     return render_template("index.html")
 
 @app.route("/api/words")
+@profile
 def get_words():
     return jsonify(get_all_words())
 
 @app.route("/api/save", methods=["POST"])
+@profile
 def save_words():
     data = request.get_json()
     if not data or "words" not in data:
@@ -33,11 +36,13 @@ def save_words():
     return jsonify({"status": "success"})
 
 @app.route("/api/chosen_words")
+@profile
 def get_chosen_words_route():
     return jsonify(get_chosen_words())
 
 # Route to get the next set of words
 @app.route('/api/next_set_of_words', methods=['GET'])
+@profile
 def next_set_of_words():
     video_id = request.args.get('video_id')
     if not video_id:
@@ -49,6 +54,7 @@ def next_set_of_words():
     return jsonify(word_list)
 
 @app.route("/api/translate", methods=["POST"])
+@profile
 def translate_word():
     data = request.get_json()
     if not data or "word" not in data:
@@ -63,6 +69,7 @@ def translate_word():
     return jsonify({"translation": translation})
 
 @app.route("/api/search_sentences", methods=["GET"])
+@profile
 def search_sentences():
     word = request.args.get('word')
     video_id = request.args.get('video_id')
@@ -88,6 +95,7 @@ def search_sentences():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/video_metadata')
+@profile
 def get_video_metadata():
     video_id = request.args.get('video_id')
     if not video_id:
@@ -147,6 +155,7 @@ def delete_chosen_words_route():
     return jsonify({"status": "success"})
 
 @app.route('/api/export_words', methods=['POST'])
+@profile
 def export_words():
     try:
         # Check if the request has JSON content
@@ -189,4 +198,6 @@ def export_words():
 
 if __name__ == "__main__":
     init_db()
+    # NOTE: For production deployments, debug=True should be turned off.
+    # Flask's debug mode is not recommended for production due to performance, security, and memory implications.
     app.run(debug=True, port=5002,host='0.0.0.0')
