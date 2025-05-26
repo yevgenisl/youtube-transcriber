@@ -28,3 +28,5 @@ urllib3==2.4.0
 yarl==1.19.0
 youtube-transcript-api==1.0.3
 yt-dlp==2025.3.31
+robotframework
+robotframework-requests
