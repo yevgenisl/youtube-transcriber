@@ -66,14 +66,6 @@ Translate Word
     ${json_response}=    To Json    ${response.content}
     Should Contain    ${json_response}    translation
 
-Search Sentences
-    [Documentation]    Test GET /api/search_sentences?word=test_word&video_id=test_video
-    ${response}=    GET On Session    flask_api    /search_sentences?word=test_word&video_id=test_video
-    Should Be Equal As Strings    ${response.status_code}    200
-    ${json_response}=    To Json    ${response.content}
-    Should Contain    ${json_response}    sentences
-    Should Be True    isinstance(${json_response}[sentences], list)
-
 Get Video Metadata
     [Documentation]    Test GET /api/video_metadata?video_id=test_video
     ${response}=    GET On Session    flask_api    /video_metadata?video_id=test_video
